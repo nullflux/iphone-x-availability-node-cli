@@ -3,6 +3,14 @@ const fetch = require('node-fetch');
 const commandLineArgs = require('command-line-args');
 const getUsage = require('command-line-usage');
 
+const AWS = require('aws-sdk');
+AWS.config.update({
+    accessKeyId: '',     // TODO: FIXME
+    secretAccessKey: '', // TODO: FIXME
+    region: 'us-west-2'
+});
+var sns = new AWS.SNS();
+
 // Get partNumbers from json file.
 const partNumbers = require('./partNumbers.json');
 
@@ -171,8 +179,23 @@ function displayStoresAvailable(storesAvailable) {
   );
 
   // Output the message.
-  console.log(`The device is currently available at ${storesAvailable.length} stores near you:`);
-  console.log(storesAvailableStr);
+  
+  var result = `The device is currently available at ${storesAvailable.length} stores near you: \n${storesAvailableStr}`;
+  console.log(result);
+
+  return sns.publish({
+    TopicArn: '', // TODO: FIXME
+    Message: result
+  }, (err, data) => {
+    if(err) {
+      console.error('oh, shit', err);
+        process.exit();
+    } else {
+      console.log('message sent!', data);
+        process.exit();
+    }
+  });
+
 }
 
 /**
@@ -192,8 +215,7 @@ async function requestLoop() {
     }, options.delay * 1000);
   } else {
     // The device is available. Show that information to the user and exit the program.
-    displayStoresAvailable(storesAvailable);
-    process.exit();
+    await displayStoresAvailable(storesAvailable);
   }
 }
 
